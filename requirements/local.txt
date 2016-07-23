@@ -19,6 +19,6 @@ pytest-django==2.9.1
 pytest-sugar==0.7.1
 
 # Required by maildump. Need to pin dependency to gevent beta to be Python 3-compatible.
-gevent==1.1.1
+gevent==1.1.2
 # Enables better email testing
 maildump==0.5.3

@@ -39,4 +39,4 @@ tblib==1.3.0
 tornado==4.4
 traitlets==4.2.2
 unixpackage==0.4.3
-xeger==0.3
+xeger==0.3.1

@@ -11,7 +11,7 @@ hitchselenium==0.5.5
 hitchserve==0.5.0
 hitchsmtp==0.2.1
 hitchsystem==0.1.5
-hitchtest==0.9.10
+hitchtest==0.9.11
 humanize==0.5.1
 ipython==5.0.0
 ipython-genutils==0.1.0

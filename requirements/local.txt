@@ -15,7 +15,7 @@ django-debug-toolbar==1.5
 ipdb==0.10.1
 
 # pytest!
-pytest-django==2.9.1
+pytest-django==3.0.0
 pytest-sugar==0.7.1
 
 # Required by maildump. Need to pin dependency to gevent beta to be Python 3-compatible.

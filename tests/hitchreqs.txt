@@ -3,7 +3,7 @@ click==6.6
 colorama==0.3.7
 decorator==4.0.10
 docopt==0.6.2
-faketime==0.9.6.3
+faketime==0.9.6.4
 hitchcron==0.2
 hitchpostgres==0.7.0
 hitchpython==0.5.3

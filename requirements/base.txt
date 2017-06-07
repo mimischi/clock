@@ -31,7 +31,8 @@ pytz==2017.2
 # Your custom requirements go here
 django-bootstrap-breadcrumbs==0.8.2
 django-bootstrap3==8.2.3
-django-bootstrap3-datetimepicker-2==2.4.2
+#django-bootstrap3-datetimepicker-2==2.4.2
+git+git://github.com/nkunihiko/django-bootstrap3-datetimepicker@f8a78b231b75c331c143d5461456f663827a8af6#egg=django-bootstrap3-datetimepicker
 
 reportlab==3.4.0
 lxml==3.8.0

@@ -36,7 +36,7 @@ git+git://github.com/blag/django-bootstrap3-datetimepicker.git@f8a78b231b75c331c
 
 reportlab==3.4.0
 lxml==3.8.0
-django-recaptcha==1.3.0
+django-recaptcha==1.3.1
 django-taggit==0.22.1
 
 # Collaboratory translations

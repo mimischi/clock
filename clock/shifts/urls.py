@@ -7,16 +7,12 @@ from clock.shifts.views import (
     ShiftManualEdit,
     ShiftMonthContractView,
     ShiftYearView,
-    get_contract_end_date,
     shift_action,
 )
 
 app_name = 'shift'
 urlpatterns = [
     # Shift URLs
-    path(
-        'ajax/get_contract_id/', get_contract_end_date, name="get_contract_id"
-    ),
     # Display the ShiftMonthView as default with the current year-month
     path('', ShiftMonthContractView.as_view(month_format='%m', ), name="list"),
     # View to handle all the quick-actions from the dashboard

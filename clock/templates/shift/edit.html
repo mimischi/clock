@@ -15,6 +15,21 @@
 {% endblock breadcrumbs %}
 
 {% block container %}
+    <div class="modal fade" id="shiftOverlap" tabindex="-1" role="dialog" aria-labelledby="shiftOverlapLabel">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    <h4 class="modal-title" id="shiftOverlapLabel">{% trans 'Information' %}</h4>
+                </div>
+                <div class="modal-body"></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" id="cancel-modal" data-dismiss="modal">{% trans 'Cancel' %}</button>
+                    <button type="button" class="btn btn-primary" id="submit-modal">{% trans 'Save' %}</button>
+                </div>
+            </div>
+        </div>
+    </div>
     <div class="row">
         <div class="col-md-6">
             {% if shift %}
@@ -32,6 +47,121 @@
 {% block extra_js %}
     <script type="text/javascript">
       $(function () {
+
+        var getUrlParameter = function getUrlParameter(sParam) {
+          var sPageURL = decodeURIComponent(window.location.search.substring(1)),
+          sURLVariables = sPageURL.split('&'),
+          sParameterName,
+          i;
+
+          for (i = 0; i < sURLVariables.length; i++) {
+            sParameterName = sURLVariables[i].split('=');
+
+            if (sParameterName[0] === sParam) {
+              return sParameterName[1] === undefined ? true : sParameterName[1];
+            }
+          }
+        };
+
+        function toggleModal() {
+          $("#shiftOverlap").modal('toggle');
+        };
+
+        function showModal() {
+          $("#shiftOverlap").modal('show');
+        };
+
+        let allowFormSubmit = true;
+        $("#submit-modal").click(function() {
+          if (allowFormSubmit) {
+            $("#shiftForm").submit();
+          }
+        });
+
+        function addShiftsToModal (shifts, type) {
+            const modal = document.querySelector('#shiftOverlap').getElementsByClassName('modal-body')[0];
+
+            let p = document.createElement('p');
+            if (type === 'wo_overlap') {
+              p.innerHTML = '{% trans "The following shifts will be created:" %}';
+            } else {
+              p.innerHTML = '{% trans "The following shifts will <strong>not</strong> be created:" %}';
+            }
+
+            modal.append(p);
+            const ul = document.createElement('ul');
+            p.append(ul);
+
+
+            shifts.forEach((shift) => {
+
+              moment().localeData('{{ LANGUAGE_CODE }}');
+              const li = document.createElement('li');
+              const started = moment(shift.started);
+              const finished = moment(shift.finished);
+              const liText = document.createTextNode(`${started} - ${finished}`);
+              li.appendChild(liText);
+              ul.append(li);
+            });
+        }
+
+        function clearModal () {
+          const modal = document.querySelector('#shiftOverlap').getElementsByClassName('modal-body')[0];
+          modal.innerHTML = '';
+          allowFormSubmit = true;
+          $('#submit-modal').show();
+          $('#cancel-modal').html(`{% trans 'Cancel' %}`);
+        }
+
+        $('#shiftOverlap').on('hidden.bs.modal', function (e) {
+          clearModal();
+        })
+
+        $("#submit-id-submitshiftform").on('click', function (event) {
+          const reoccuring = $("#id_reoccuring").val() || 'ONCE';
+          if (reoccuring === 'ONCE') {
+            return;
+          };
+          event.preventDefault();
+          const started = $("#id_started").val();
+          let finished = moment($("#id_finished").val());
+          const contract = $("#id_contract").val() || 0;
+          const end_date = $("#id_end_date").val();
+          let shift_id = 0;
+          if (location.pathname.indexOf('edit') > -1) {
+            shift_id = location.pathname.split('/')[2];
+          }
+
+          finished = moment(new Date(`${end_date} ${finished.hour()}:${finished.minute()}`));
+
+          let url = `/api/shifts/overlap/${started}/${finished.format('YYYY-MM-DD HH:mm')}/${contract}/${reoccuring}/${shift_id}/`;
+          $.ajax({
+            type: 'GET',
+            url: url,
+            success: function (data) {
+              if (data.without_overlap && data.without_overlap.length) {
+                addShiftsToModal(data.without_overlap, type='wo_overlap');
+              } else {
+                allowFormSubmit = false;
+                $('#submit-modal').hide();
+                $('#cancel-modal').html(`{% trans 'OK' %}`);
+              }
+              if (data.with_overlap && data.with_overlap.length) {
+                const warn = `{% trans 'Warning' %}`
+                const modalTitle = document.querySelector('#shiftOverlap').getElementsByClassName('modal-title')[0];
+                modalTitle.innerHTML = warn;
+                addShiftsToModal(data.with_overlap, type='overlap');
+              }
+              showModal();
+            },
+            error: function (data) {
+              console.log('Michael, what happened?');
+            },
+          });
+
+          toggleModal();
+        })
+
         // Taken from the Django documentation
         const csrftoken = $("[name=csrfmiddlewaretoken]").val();
         function csrfSafeMethod(method) {
@@ -45,7 +175,6 @@
             }
           }
         });
-        const url = `{% url 'shift:get_contract_id' %}`;
         const contract_select = $("#id_contract");
         const end_date_div = $("#div_id_end_date");
         const end_date_input = $("#id_end_date");
@@ -63,10 +192,24 @@
         const showContractEndDate = function () {
           end_date_div.show();
         }
+
+        $(document).ready(() => {
+          if (reoccuring.val() !== 'ONCE') {
+            showContractEndDate();
+          }
+        });
+
+        function setReoccuringEndDate(date) {
+          end_date_input.val(date);
+          end_date_div.data("DateTimePicker").date(date);
+        }
+
         const grabContractEndDate = function (contractID) {
           if (reoccuring.val() !== 'ONCE' && contract_select.val() !== '' && user_id.val() !== '') {
+            let url = `{% url 'api:end_date-detail' '0' %}`;
+            url = url.substring(0, url.length - 2) + contractID + '/';
             $.ajax({
-              type: 'POST',
+              type: 'GET',
               url: url,
               data: {
                 'contract': contractID,
@@ -74,8 +217,16 @@
               },
               success: function (data) {
                 showContractEndDate();
-                end_date_input.val(data['end_date']);
-                end_date_div.data("DateTimePicker").date(data['end_date']);
+                if (data['end_date'] == null) {
+                  if (end_date_input.val() === '') {
+                    const date = moment($('#id_started').val()).endOf('month').format('YYYY-MM-DD');
+                    setReoccuringEndDate(date);
+                    return;
+                  } else {
+                    return;
+                  }
+                }
+                setReoccuringEndDate(data['end_date']);
               },
               error: function (data) {
                 console.log('No contract ID found.');
@@ -89,7 +240,12 @@
             resetContractEndDate();
           } else {
             if (contract_select.val() === '') {
-              showContractEndDate()
+              if (reoccuring.val() !== 'ONCE' && contract_select.val() == '') {
+                const date = moment($('#id_started').val()).endOf('month').format('YYYY-MM-DD');
+                showContractEndDate();
+                setReoccuringEndDate(date);
+              }
+              showContractEndDate();
             } else {
               grabContractEndDate(contract_select.val());
             }
@@ -119,14 +275,21 @@
           inline: true,
           sideBySide: true,
           locale: '{{ LANGUAGE_CODE }}',
+          format: 'YYYY-MM-DD HH:mm',
           stepping: 5
         });
         shiftFinishedPicker.datetimepicker({
           inline: true,
           sideBySide: true,
           locale: '{{ LANGUAGE_CODE }}',
+          format: 'YYYY-MM-DD HH:mm',
           stepping: 5
         });
+      shiftStartedPicker.on("dp.change", function (e) {
+        end_date_div.data("DateTimePicker").minDate(e.date);
+        let tomorrow = moment(e.date).add(1, 'days').endOf('month');
+        end_date_div.data("DateTimePicker").date(tomorrow);
+      });
       {% if not shift %}
         shiftStartedPicker.data("DateTimePicker").defaultDate(moment("{{ view.start_datetime }}"));
         shiftFinishedPicker.data("DateTimePicker").defaultDate(moment("{{ view.start_datetime }}"));

@@ -297,6 +297,8 @@ class ShiftForm(forms.ModelForm):
         self.helper = FormHelper(self)
         self.helper.form_action = '.'
         self.helper.form_method = 'post'
+        self.helper.attrs = {'name': 'shiftForm'}
+        self.helper.form_id = 'shiftForm'
         self.helper.layout = Layout(
             Field(
                 'started', template='shift/fields/datetimepicker_field.html'
@@ -312,7 +314,7 @@ class ShiftForm(forms.ModelForm):
             FormActions(
                 HTML(cancel_html),
                 Submit(
-                    'submit',
+                    'submitShiftForm',
                     add_input_text,
                     css_class='btn btn-primary pull-right'
                 ),
@@ -341,7 +343,7 @@ class ShiftForm(forms.ModelForm):
         reoccuring = self.cleaned_data.get('reoccuring')
         if reoccuring != 'ONCE' and self.cleaned_data.get(
             'contract'
-        ).end_date and (
+        ) and self.cleaned_data.get('contract').end_date and (
             self.cleaned_data.get('end_date') >
             self.cleaned_data.get('contract').end_date
         ):
@@ -366,10 +368,14 @@ class ShiftForm(forms.ModelForm):
         if reoccuring != 'ONCE':
             # Populate a dictionary with all values that we need to create new
             # Shifts.
+            contract = self.cleaned_data.get('contract', None)
+            if contract is not None:
+                contract = contract.pk
+
             data = {}
             for field in ['key', 'note', 'tags', 'end_date']:
                 data[field] = self.cleaned_data.get(field)
-            data['contract'] = self.cleaned_data.get('contract').pk
+            data['contract'] = contract
             data['duration'] = self.instance.duration
             data['reoccuring'] = 'ONCE'
             started = self.cleaned_data.get('started')
